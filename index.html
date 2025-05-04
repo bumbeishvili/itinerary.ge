@@ -155,6 +155,51 @@
             background-color: #10B981;
             border-color: #10B981;
         }
+        
+        /* Chat styling */
+        #chat-messages {
+            background-color: white;
+            height: 100%;
+        }
+        
+        /* Chat bubbles animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #chat-messages > div {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Instagram-style input focus */
+        #chat-container input:focus {
+            outline: none;
+        }
+        
+        #chat-container button:hover svg {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        
+        /* Custom scrollbar */
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a3a3a3;
+        }
     </style>
     
     <!-- Custom JavaScript -->
@@ -162,12 +207,12 @@
 </head>
 <body class="bg-slate-50 h-screen p-3">
    <div class="flex h-full gap-3">
-      <!-- Query Panel (Initially visible) -->
-      <div class="w-2/3 pl-4 pr-1 py-4" id="query-container">
+      <!-- Query Panel (Initially visible) - Centered -->
+      <div class="w-2/3 mx-auto py-4" id="query-container">
         <div class="flex flex-col h-full panel p-6">
           <div class="flex-grow px-4">
             <!-- Hero Section -->
-            <div class="text-center mb-10">
+            <div class="text-center mb-12">
               <h1 class="text-4xl font-bold text-gray-900 mb-4">
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-800">
                   Where Would You Like to Explore?
@@ -257,7 +302,7 @@
               <!-- Start Planning Button -->
               <div>
                 <button id="start-planning-btn"
-                        class="w-full gradient-btn text-white py-3 rounded-xl text-md font-semibold transition-all duration-300 mt-6 shadow-md">
+                        class="w-full gradient-btn text-white py-3 rounded-xl text-md font-semibold transition-all duration-300 mt-16 shadow-md">
                   Start Planning Your Journey
                 </button>
               </div>
@@ -267,130 +312,122 @@
       </div>
 
       <!-- Chat Panel (Initially hidden) -->
-      <div class="w-2/3 pl-4 pr-1 py-4 hidden" id="chat-container">
+      <div class="w-2/3 py-4 hidden" id="chat-container">
         <div class="flex flex-col h-full panel overflow-hidden">
           <!-- Map container -->
-          <div id="map-container" class="h-1/2 p-4">
+          <div id="map-container" class="h-2/5 p-4">
             <div class="map-wrapper">
                 <div id="map"></div>
             </div>
           </div>
           
-          <!-- Chat container -->
-          <div id="chat-container" class="h-1/2 flex flex-col p-4">
-            <div class="flex-grow overflow-y-auto mb-4 px-2">
-              <!-- Chat messages would appear here -->
+          <!-- Chat container with Instagram-style design -->
+          <div class="h-3/5 flex flex-col p-2">
+            <div class="flex items-center bg-white p-3 border-b border-gray-200">
+              <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold">
+                IG
+              </div>
+              <div class="ml-3">
+                <h3 class="font-semibold text-gray-800">Itinerary Guide</h3>
+                <p class="text-xs text-gray-500">Available to help</p>
+              </div>
             </div>
-            <div class="relative w-full">
-              <input type="text" placeholder="Chat with Itinerary" class="w-full p-3 pr-14 border rounded-full border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-              <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary-600 text-white p-2 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(-90deg);">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </button>
+            
+            <div class="flex-grow overflow-y-auto p-3 bg-white" id="chat-messages">
+              <!-- Chat messages will appear here -->
+            </div>
+            
+            <div class="p-3 border-t border-gray-200 bg-white">
+              <div class="flex items-center rounded-full border border-gray-300 bg-gray-50 pl-4 pr-1 py-1">
+                <input type="text" placeholder="Message..." class="w-full bg-transparent text-primary-700 focus:outline-none" />
+                <button class="w-9 h-9 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 hover:bg-primary-700 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Right panel with logo -->
-      <div class="w-1/3 pl-1 pr-4 py-4">
-        <div class="panel p-6 flex flex-col h-full">
-          <!-- Header with menu -->
-          <div class="flex justify-between items-center mb-6">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-800">Check</h1>
-              <h2 class="text-2xl font-bold text-primary-600">your daily plan</h2>
-            </div>
-            <button class="p-2 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
-            </button>
+      <!-- Checklist Panel (right side) - Adding id="checklist-panel" -->
+      <div class="w-1/3 pr-4 pl-1 py-4" id="checklist-panel">
+        <div class="flex flex-col h-full panel p-6">
+          <h2 class="text-xl font-semibold text-gray-800 mb-4">Check your daily plan</h2>
+          
+          <!-- Progress Waves -->
+          <div class="mb-4 flex items-center justify-between gap-1.5">
+            <div id="progress-wave-1" class="progress-wave w-full bg-green-200"></div>
+            <div id="progress-wave-2" class="progress-wave w-full bg-green-200"></div>
+            <div id="progress-wave-3" class="progress-wave w-full bg-green-200"></div>
           </div>
-
-          <!-- Decorative waves (now progress indicators) -->
-          <div class="flex gap-2 mb-8">
-            <div class="progress-wave w-24 bg-green-200 rounded-full" id="progress-wave-1"></div>
-            <div class="progress-wave w-24 bg-green-200 rounded-full" id="progress-wave-2"></div>
-            <div class="progress-wave w-24 bg-green-200 rounded-full" id="progress-wave-3"></div>
+          
+          <!-- Packing Tasks Section -->
+          <div id="packing-section" class="checklist-section mb-3 bg-white">
+            <div class="section-header flex items-center justify-between p-3 rounded-md cursor-pointer" onclick="toggleSection('packing-details')">
+              <div class="flex items-center gap-4">
+                <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="toggleCheck(this)"></div>
+                <span class="font-medium text-gray-800">Packing</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-20 h-2 bg-gray-200 rounded-full mr-3">
+                  <div class="h-2 bg-accent rounded-full" style="width: 0%" data-progress-bar="packing"></div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            <div id="packing-details" class="hidden mt-3 ml-8 mr-4">
+              <div id="packing-tasks" class="space-y-4">
+                <!-- Tasks will be populated by JavaScript -->
+              </div>
+            </div>
           </div>
-
-          <!-- Collapsible Sections -->
-          <div class="flex-grow space-y-6">
-            <!-- Packing List Section -->
-            <div class="checklist-section" id="packing-section">
-              <div class="section-header flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg" onclick="toggleSection('packing-details')">
-                <div class="flex items-center gap-4">
-                  <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="event.stopPropagation(); toggleCheck(this)">
-                  </div>
-                  <span class="text-lg font-medium text-gray-800">Packing List</span>
-                </div>
-                <div class="flex items-center gap-4">
-                  <!-- Progress bar -->
-                  <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div class="h-full bg-accent rounded-full transition-all duration-300" data-progress-bar="packing" style="width: 0%"></div>
-                  </div>
-                  <svg class="w-5 h-5 transform transition-transform text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                  </svg>
-                </div>
+          
+          <!-- Accommodation Section -->
+          <div id="accommodation-section" class="checklist-section mb-3 bg-white">
+            <div class="section-header flex items-center justify-between p-3 rounded-md cursor-pointer" onclick="toggleSection('accommodation-details')">
+              <div class="flex items-center gap-4">
+                <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="toggleCheck(this)"></div>
+                <span class="font-medium text-gray-800">Accommodation</span>
               </div>
-              <div id="packing-details" class="hidden pl-12 pr-4 py-4">
-                <div class="space-y-4" id="packing-tasks">
-                  <!-- Tasks will be populated by JavaScript -->
+              <div class="flex items-center">
+                <div class="w-20 h-2 bg-gray-200 rounded-full mr-3">
+                  <div class="h-2 bg-accent rounded-full" style="width: 0%" data-progress-bar="accommodation"></div>
                 </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
-
-            <!-- Accommodation Section -->
-            <div class="checklist-section" id="accommodation-section">
-              <div class="section-header flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg" onclick="toggleSection('accommodation-details')">
-                <div class="flex items-center gap-4">
-                  <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="event.stopPropagation(); toggleCheck(this)">
-                  </div>
-                  <span class="text-lg font-medium text-gray-800">Accommodation</span>
-                </div>
-                <div class="flex items-center gap-4">
-                  <!-- Progress bar -->
-                  <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div class="h-full bg-accent rounded-full transition-all duration-300" data-progress-bar="accommodation" style="width: 0%"></div>
-                  </div>
-                  <svg class="w-5 h-5 transform transition-transform text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                  </svg>
-                </div>
-              </div>
-              <div id="accommodation-details" class="hidden pl-12 pr-4 py-4">
-                <div class="space-y-4" id="accommodation-tasks">
-                  <!-- Tasks will be populated by JavaScript -->
-                </div>
+            <div id="accommodation-details" class="hidden mt-3 ml-8 mr-4">
+              <div id="accommodation-tasks" class="space-y-4">
+                <!-- Tasks will be populated by JavaScript -->
               </div>
             </div>
-
-            <!-- Activities Section -->
-            <div class="checklist-section" id="activities-section">
-              <div class="section-header flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg" onclick="toggleSection('activities-details')">
-                <div class="flex items-center gap-4">
-                  <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="event.stopPropagation(); toggleCheck(this)">
-                  </div>
-                  <span class="text-lg font-medium text-gray-800">Activities</span>
-                </div>
-                <div class="flex items-center gap-4">
-                  <!-- Progress bar -->
-                  <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div class="h-full bg-accent rounded-full transition-all duration-300" data-progress-bar="activities" style="width: 0%"></div>
-                  </div>
-                  <svg class="w-5 h-5 transform transition-transform text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                  </svg>
-                </div>
+          </div>
+          
+          <!-- Activities Section -->
+          <div id="activities-section" class="checklist-section mb-3 bg-white">
+            <div class="section-header flex items-center justify-between p-3 rounded-md cursor-pointer" onclick="toggleSection('activities-details')">
+              <div class="flex items-center gap-4">
+                <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="toggleCheck(this)"></div>
+                <span class="font-medium text-gray-800">Activities</span>
               </div>
-              <div id="activities-details" class="hidden pl-12 pr-4 py-4">
-                <div class="space-y-4" id="activities-tasks">
-                  <!-- Tasks will be populated by JavaScript -->
+              <div class="flex items-center">
+                <div class="w-20 h-2 bg-gray-200 rounded-full mr-3">
+                  <div class="h-2 bg-accent rounded-full" style="width: 0%" data-progress-bar="activities"></div>
                 </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            <div id="activities-details" class="hidden mt-3 ml-8 mr-4">
+              <div id="activities-tasks" class="space-y-4">
+                <!-- Tasks will be populated by JavaScript -->
               </div>
             </div>
           </div>

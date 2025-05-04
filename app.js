@@ -4,6 +4,212 @@ document.addEventListener('DOMContentLoaded', () => {
     const queryContainer = document.getElementById('query-container');
     const chatContainer = document.getElementById('chat-container');
     const startPlanningBtn = document.getElementById('start-planning-btn');
+    const checklistPanel = document.getElementById('checklist-panel'); // Get checklist panel
+    const chatInput = document.querySelector('#chat-container input');
+    const sendButton = document.querySelector('#chat-container button');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // Store user selections globally
+    let userSelections = {};
+    
+    // Add chat functionality
+    function initializeChat() {
+        // Add event listener for send button
+        sendButton.addEventListener('click', handleChatSend);
+        
+        // Add event listener for Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleChatSend();
+            }
+        });
+    }
+    
+    // Function to handle sending a chat message
+    function handleChatSend() {
+        const userMessage = chatInput.value.trim();
+        if (!userMessage) return;
+        
+        // Add user message to chat
+        addMessageToChat(userMessage, 'user');
+        
+        // Clear input
+        chatInput.value = '';
+        
+        // Show typing indicator
+        showTypingIndicator();
+        
+        // Simulate AI response after delay
+        setTimeout(() => {
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Generate AI response
+            const aiResponse = generateAIResponse(userMessage);
+            
+            // Add AI response to chat
+            addMessageToChat(aiResponse, 'ai');
+            
+            // Scroll to bottom
+            scrollChatToBottom();
+        }, 1500); // 1.5 second delay for realism
+    }
+    
+    // Function to add a message to the chat with Instagram-like styling
+    function addMessageToChat(message, sender) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'mb-4';
+        
+        if (sender === 'user') {
+            messageEl.innerHTML = `
+                <div class="flex justify-end">
+                    <div class="max-w-[75%] bg-primary-50 border border-primary-100 text-primary-700 rounded-2xl rounded-tr-sm py-2 px-4">
+                        ${message}
+                    </div>
+                </div>
+            `;
+        } else {
+            messageEl.innerHTML = `
+                <div class="flex items-start mb-4">
+                    <div class="w-8 h-8 rounded-full bg-primary-600 flex-shrink-0 flex items-center justify-center text-white text-xs">
+                        IG
+                    </div>
+                    <div class="ml-2 max-w-[75%] bg-white border border-gray-200 text-primary-700 rounded-2xl rounded-tl-sm py-2 px-4">
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+        
+        chatMessages.appendChild(messageEl);
+        scrollChatToBottom();
+    }
+    
+    // Function to show typing indicator with Instagram-like styling
+    function showTypingIndicator() {
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator mb-4';
+        typingIndicator.innerHTML = `
+            <div class="flex items-start">
+                <div class="w-8 h-8 rounded-full bg-primary-600 flex-shrink-0 flex items-center justify-center text-white text-xs">
+                    IG
+                </div>
+                <div class="ml-2 bg-white border border-gray-200 rounded-2xl rounded-tl-sm py-2 px-4">
+                    <div class="flex space-x-1 items-center h-5">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot animation-delay-200"></div>
+                        <div class="typing-dot animation-delay-400"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(typingIndicator);
+        scrollChatToBottom();
+        
+        // Add dot styling
+        const dotStyle = document.createElement('style');
+        dotStyle.textContent = `
+            .typing-dot {
+                width: 6px;
+                height: 6px;
+                background-color: #3B82F6;
+                border-radius: 50%;
+                opacity: 0.6;
+                animation: pulseAnimation 1.5s infinite;
+            }
+            @keyframes pulseAnimation {
+                0% { opacity: 0.6; transform: scale(0.8); }
+                50% { opacity: 1; transform: scale(1.2); }
+                100% { opacity: 0.6; transform: scale(0.8); }
+            }
+            .animation-delay-200 { animation-delay: 0.2s; }
+            .animation-delay-400 { animation-delay: 0.4s; }
+        `;
+        document.head.appendChild(dotStyle);
+    }
+    
+    // Function to remove typing indicator
+    function removeTypingIndicator() {
+        const typingIndicator = document.querySelector('.typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+    
+    // Function to scroll chat to bottom
+    function scrollChatToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Function to generate AI response
+    function generateAIResponse(userMessage) {
+        userMessage = userMessage.toLowerCase();
+        
+        // Check if something is missing in the trip planning
+        const missingElementResponses = [
+            "I noticed your itinerary is missing information about local transportation options. Would you like me to suggest some ways to get around in Georgia?",
+            "It seems we haven't planned any specific activities for your trip yet. Based on your preferences, I'd recommend visiting wine regions in Kakheti. Would you like more details?",
+            "I don't see any accommodation bookings in your checklist. Would you like suggestions for places to stay in Tbilisi?",
+            "Your travel plan doesn't include any food experiences yet. Georgian cuisine is amazing - would you like recommendations for traditional dishes to try?",
+            "I notice we haven't discussed your visa requirements. Depending on your nationality, you might need to arrange this before traveling. Would you like me to provide more information?"
+        ];
+        
+        // Responses to common questions
+        if (userMessage.includes('hotel') || userMessage.includes('stay') || userMessage.includes('accommodation')) {
+            return "I see you're interested in accommodation. I notice your checklist doesn't have specific hotel bookings yet. I recommend adding 'Book hotel in Tbilisi' to your accommodation tasks. Would you like me to suggest some options based on your budget?";
+        } else if (userMessage.includes('food') || userMessage.includes('restaurant') || userMessage.includes('eat')) {
+            return "Regarding food options, I notice your plan doesn't include any restaurant reservations. Georgia is famous for khachapuri, khinkali, and wine. Would you like me to add 'Research top-rated Georgian restaurants' to your checklist?";
+        } else if (userMessage.includes('transport') || userMessage.includes('get around') || userMessage.includes('travel')) {
+            return "About transportation - I see this is incomplete in your plan. In Tbilisi, you can use the metro, buses, or taxis. For traveling between cities, marshrutkas (minibuses) are common. Should I add 'Download Tbilisi public transport app' to your tasks?";
+        } else if (userMessage.includes('activity') || userMessage.includes('do') || userMessage.includes('visit')) {
+            return "I notice your activities section is missing some key attractions. Based on your interests, I recommend adding the Old Town, Narikala Fortress, and a day trip to Mtskheta to your itinerary. Would you like me to update your checklist?";
+        } else if (userMessage.includes('wine') || userMessage.includes('drink')) {
+            return "It looks like we haven't planned your wine experiences yet! Georgia is the birthplace of wine with 8,000 years of winemaking history. A visit to Kakheti wine region is missing from your plan. Should I add a wine tour to your checklist?";
+        } else if (userMessage.includes('hello') || userMessage.includes('hi') || userMessage.includes('hey')) {
+            return "Hello! I notice your travel plan still has some missing elements. Would you like me to help complete your Georgia itinerary? We still need to add specific attractions and restaurant recommendations.";
+        } else if (userMessage.includes('thank')) {
+            return "You're welcome! I'm still noticing some gaps in your travel plans though. Your checklist doesn't include emergency contacts or travel insurance details. Would you like me to help you complete these missing items?";
+        } else {
+            // Return a random "something is missing" response
+            return missingElementResponses[Math.floor(Math.random() * missingElementResponses.length)];
+        }
+    }
+    
+    // Initialize chat functionality
+    initializeChat();
+    
+    // Hide checklist panel initially
+    if (checklistPanel) {
+        checklistPanel.classList.add('hidden');
+    }
+    
+    // Add animation styles to sections
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        [id$="-details"] {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.3s ease-out, margin 0.3s ease;
+            opacity: 0;
+            margin-top: 0;
+        }
+        [id$="-details"].visible {
+            max-height: 500px;
+            opacity: 1;
+            margin-top: 0.75rem;
+        }
+        .section-header svg.transform {
+            transition: transform 0.3s ease;
+        }
+        #checklist-panel {
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        #checklist-panel.hidden {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+    `;
+    document.head.appendChild(styleSheet);
     
     // New form inputs
     const startingPointInput = document.getElementById('starting-point-input');
@@ -166,21 +372,49 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update total progress bar
         updateTotalProgress();
 
-        // Show first section by default and hide others
+        // Show only the first section by default
+        hideAllSections();
         const packingDetails = document.getElementById('packing-details');
-        if (packingDetails && packingDetails.classList.contains('hidden')) {
-            toggleSection('packing-details');
+        if (packingDetails) {
+            showSection('packing-details');
         }
+    }
+
+    // Hide all sections
+    function hideAllSections() {
+        const allDetailSections = document.querySelectorAll('[id$="-details"]');
+        const allArrows = document.querySelectorAll('.section-header svg.transform');
         
-        const accommodationDetails = document.getElementById('accommodation-details');
-        if (accommodationDetails && !accommodationDetails.classList.contains('hidden')) {
-            toggleSection('accommodation-details');
-        }
+        allDetailSections.forEach(section => {
+            section.classList.remove('visible');
+            // Allow animation to complete before hiding
+            setTimeout(() => {
+                if (!section.classList.contains('visible')) {
+                    section.classList.add('hidden');
+                }
+            }, 300);
+        });
         
-        const activitiesDetails = document.getElementById('activities-details');
-        if (activitiesDetails && !activitiesDetails.classList.contains('hidden')) {
-            toggleSection('activities-details');
-        }
+        allArrows.forEach(arrow => {
+            arrow.classList.remove('rotate-180');
+        });
+    }
+
+    // Show specific section
+    function showSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        const sectionHeader = section.closest('.checklist-section').querySelector('.section-header');
+        const arrow = sectionHeader.querySelector('svg.transform');
+        
+        // Remove hidden first to allow animation
+        section.classList.remove('hidden');
+        
+        // Trigger reflow to ensure transition works
+        void section.offsetWidth;
+        
+        // Add visible class to animate
+        section.classList.add('visible');
+        arrow.classList.add('rotate-180');
     }
 
     // Initialize map configuration
@@ -235,36 +469,32 @@ document.addEventListener('DOMContentLoaded', () => {
         .setLngLat([44.8271, 41.7151])
         .addTo(chatMap);
 
-    // Add a popup
-    const popup = new maplibregl.Popup({ 
-        offset: 25,
-        closeButton: true,
-        closeOnClick: false,
-        className: 'custom-popup'
-    })
-        .setLngLat([44.8271, 41.7151])
-        .setHTML('<h3 class="font-bold text-lg text-blue-600">Tbilisi, Georgia</h3><p class="text-gray-600">Capital of Georgia</p>')
-        .addTo(chatMap);
-
-    marker.setPopup(popup);
-
     // Error handling
     chatMap.on('error', (e) => {
         console.error('Map error:', e);
     });
 
-    // Toggle section visibility
+    // Toggle section visibility - modified to ensure only one section is open at a time
     window.toggleSection = function(sectionId) {
         const section = document.getElementById(sectionId);
-        const sectionHeader = section.closest('.checklist-section').querySelector('.section-header');
-        const arrow = sectionHeader.querySelector('svg.transform');
         
-        if (section.classList.contains('hidden')) {
-            section.classList.remove('hidden');
-            arrow.classList.add('rotate-180');
+        // If section is hidden, show it and hide all others
+        if (section.classList.contains('hidden') || !section.classList.contains('visible')) {
+            hideAllSections();
+            showSection(sectionId);
         } else {
+            // If section is visible, hide it
+            section.classList.remove('visible');
+            const sectionHeader = section.closest('.checklist-section').querySelector('.section-header');
+            const arrow = sectionHeader.querySelector('svg.transform');
             arrow.classList.remove('rotate-180');
-            section.classList.add('hidden');
+            
+            // Wait for animation to complete before hiding
+            setTimeout(() => {
+                if (!section.classList.contains('visible')) {
+                    section.classList.add('hidden');
+                }
+            }, 300);
         }
     }
 
@@ -471,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Start Planning button clicked'); // Debug log
         
         // Gather all user selections
-        const userSelections = {
+        userSelections = {
             starting: startingPointInput.value || 'Tbilisi',
             duration: durationInput.value || 'Week',
             budget: budgetInput.value || 'Mid-range',
@@ -491,21 +721,59 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update checklist with user-specific tasks
         updateTravelChecklist(userSelections);
 
-        // Hide query panel and show chat panel
+        // Adjust main layout for the chat view
+        const mainContainer = document.querySelector('.flex.h-full.gap-3');
+        
+        // Hide query panel 
         queryContainer.classList.add('hidden');
+        
+        // Adjust chat container to take proper width and position
         chatContainer.classList.remove('hidden');
+        chatContainer.classList.remove('mx-auto');
+        chatContainer.classList.add('pl-4', 'pr-1');
+        
+        // Show checklist panel with animation
+        if (checklistPanel) {
+            checklistPanel.classList.remove('hidden');
+            // Ensure animation plays by forcing a reflow
+            void checklistPanel.offsetWidth;
+            checklistPanel.style.opacity = '1';
+            checklistPanel.style.transform = 'translateX(0)';
+        }
 
         // Add initial message to chat
-        const chatMessages = document.querySelector('#chat-container .flex-grow');
         const initialMessage = `Planning your ${userSelections.budget} trip to Georgia${userSelections.starting !== 'Not in Georgia' ? ' from ' + userSelections.starting : ''} for ${userSelections.duration}`;
         
-        chatMessages.innerHTML = `
-            <div class="mb-4">
-                <div class="bg-blue-100 rounded-lg p-4 text-blue-700">
-                    ${initialMessage}
-                </div>
-            </div>
-        `;
+        chatMessages.innerHTML = '';
+        
+        // Add AI welcome messages with proper Instagram-style formatting
+        setTimeout(() => {
+            addMessageToChat(initialMessage, 'ai');
+            
+            setTimeout(() => {
+                showTypingIndicator();
+                
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    addMessageToChat("I notice some elements are missing from your travel plan. Looking at your checklist, you still need to add specific activities and restaurant reservations. Would you like me to help you complete these?", 'ai');
+                    
+                    // Add example user response after a delay
+                    setTimeout(() => {
+                        addMessageToChat("Yes, could you recommend some restaurants in Tbilisi?", 'user');
+                        
+                        // Show typing indicator and AI response
+                        setTimeout(() => {
+                            showTypingIndicator();
+                            
+                            setTimeout(() => {
+                                removeTypingIndicator();
+                                addMessageToChat("Of course! For traditional Georgian cuisine, I recommend Salobie Bia for their amazing lobio (bean stew) and Shavi Lomi for authentic dishes with a modern twist. For khinkali (dumplings), try Pasanauri or Zakhar Zakharich. Should I add 'Make reservation at Georgian restaurant' to your checklist?", 'ai');
+                            }, 2000);
+                        }, 1000);
+                    }, 1500);
+                }, 1500);
+            }, 800);
+        }, 300);
 
         // Trigger map resize to ensure proper rendering
         setTimeout(() => {
