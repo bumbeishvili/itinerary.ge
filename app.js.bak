@@ -21,65 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     
     // Flight animation variables
+    let flightMarker;
+    let flightPath;
+    let currentSegment = 0;
+    let animationStarted = false;
     let animation;
-    let counter = 0;
-    const steps = 500;
     
-    // Function to create the flight animation
-    function createFlightAnimation(map) {
-        // Create a GeoJSON LineString from the route coordinates
-        const routeFeature = {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'LineString',
-                'coordinates': flightRoute.map(point => point.coordinates)
-            }
-        };
-
-        // Calculate the total distance of the route
-        let lineDistance = 0;
-        for (let i = 0; i < flightRoute.length - 1; i++) {
-            lineDistance += turf.distance(
-                turf.point(flightRoute[i].coordinates),
-                turf.point(flightRoute[i + 1].coordinates)
-            );
-        }
-
-        // Create a smooth arc with many points for the animation
-        const arc = [];
+    // Function to create a styled line for the flight path
+    function createFlightPath(map) {
+        // Create the line geometry for the complete route
+        const routeCoordinates = flightRoute.map(point => point.coordinates);
         
-        // Draw an arc between all points using great circle paths
-        let cumulativeDistance = 0;
-        
-        for (let i = 0; i < flightRoute.length - 1; i++) {
-            // Create a linestring between two points
-            const startPoint = turf.point(flightRoute[i].coordinates);
-            const endPoint = turf.point(flightRoute[i + 1].coordinates);
-            
-            // Use great circle interpolation for a more realistic flight path
-            // This creates a more natural curve that follows the earth's curvature
-            const segment = turf.greatCircle(startPoint, endPoint, {
-                'steps': 100,
-                'npoints': 100
-            });
-            
-            const segmentDistance = turf.length(segment);
-            const segmentSteps = Math.ceil((segmentDistance / lineDistance) * steps);
-            
-            // Sample points along the great circle path
-            const lineString = segment.geometry.coordinates;
-            for (let j = 0; j < lineString.length; j++) {
-                // Only add points at appropriate intervals to maintain consistent animation speed
-                if (j % Math.ceil(lineString.length / segmentSteps) === 0 || j === lineString.length - 1) {
-                    arc.push(lineString[j]);
-                }
-            }
-        }
-        
-        // Add the final point to ensure we reach the destination
-        arc.push(flightRoute[flightRoute.length - 1].coordinates);
-
-        // Create sources for the route and the moving point
+        // Add the source for the route
         map.addSource('route', {
             'type': 'geojson',
             'data': {
@@ -87,58 +40,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 'properties': {},
                 'geometry': {
                     'type': 'LineString',
-                    'coordinates': arc
+                    'coordinates': routeCoordinates
                 }
             }
         });
-
-        map.addSource('point', {
-            'type': 'geojson',
-            'data': {
-                'type': 'FeatureCollection',
-                'features': [{
-                    'type': 'Feature',
-                    'properties': {
-                        'bearing': 0
-                    },
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': flightRoute[0].coordinates
-                    }
-                }]
-            }
-        });
-
-        // Add a line layer for the route
+        
+        // Add a dashed line layer for the route but make it invisible initially
         map.addLayer({
             'id': 'route',
-            'source': 'route',
             'type': 'line',
-            'paint': {
-                'line-width': 2,
-                'line-dasharray': [2, 1],
-                'line-color': '#2563EB'
-            }
-        });
-
-        // Add a symbol layer for the airplane
-        map.addLayer({
-            'id': 'point',
-            'source': 'point',
-            'type': 'symbol',
+            'source': 'route',
             'layout': {
-                'icon-image': 'plane-marker',
-                'icon-size': 0.8,
-                'icon-rotate': ['get', 'bearing'],
-                'icon-rotation-alignment': 'map',
-                'icon-allow-overlap': true,
-                'icon-ignore-placement': true
+                'line-join': 'round',
+                'line-cap': 'round',
+                'visibility': 'none'  // Hide initially
+            },
+            'paint': {
+                'line-color': '#2563EB',
+                'line-width': 2,
+                'line-dasharray': [2, 1]
             }
         });
         
-        // Create destination markers but keep them hidden initially
+        // Store markers in a global array instead of adding them directly to the map
         window.destinationMarkers = [];
         
+        // Create markers for each destination but don't add them to the map yet
         flightRoute.forEach((point, index) => {
             // Create a DOM element for the marker
             const el = document.createElement('div');
@@ -183,168 +110,181 @@ document.addEventListener('DOMContentLoaded', () => {
                 tooltip.style.opacity = '0';
             });
             
-            // Create the marker but don't add it to the map yet
+            // Create the marker and store it in the array
             const marker = new maplibregl.Marker(el)
                 .setLngLat(point.coordinates);
-                
-            // Only show Madrid marker initially
+            
+            // Only add the first marker (Madrid) to the map initially
             if (index === 0) {
                 marker.addTo(map);
                 // Make it visible with a delay
                 setTimeout(() => {
                     el.style.opacity = '1';
-                }, 1000);
+                }, 2500);  // Show after initial zoom
             }
             
+            // Store the marker and its element in our array
             window.destinationMarkers.push({
                 marker: marker,
                 element: el,
                 coordinates: point.coordinates,
-                name: point.name,
-                added: index === 0
+                name: point.name
             });
         });
-
-        // Create custom plane icon image
-        const planeImage = new Image(24, 24);
-        planeImage.onload = () => {
-            map.addImage('plane-marker', planeImage);
-            // Start the animation automatically once the image is loaded
-            animateRoute(map, arc);
-        };
-        planeImage.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="#FFFFFF" stroke="#2563EB" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 10h4a2 2 0 0 1 0 4h-4l-4 7H9l2-7H7l-2 2H2l2-4l-2-4h3l2 2h4L9 3h3z"/>
+        
+        // Create plane icon marker
+        const planeEl = document.createElement('div');
+        planeEl.className = 'plane-marker';
+        planeEl.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="#2563EB" stroke-width="2">
+                <path d="M22 16.5L20.5 19L12 14.5V19L14 21V23L12 22L10 23V21L12 19V14.5L3.5 19L2 16.5L10.5 12L2 7.5L3.5 5L12 9.5V5L10 3V1L12 2L14 1V3L12 5V9.5L20.5 5L22 7.5L13.5 12L22 16.5Z"/>
             </svg>
-        `);
+        `;
+        planeEl.style.transformOrigin = 'center';
         
-        return arc;
+        // Create the plane marker
+        flightMarker = new maplibregl.Marker(planeEl)
+            .setLngLat(flightRoute[0].coordinates)
+            .addTo(map);
     }
-
-    // Function to animate the plane along the route
-    function animateRoute(map, arc) {
-        // Reset counter
-        counter = 0;
+    
+    // Function to calculate bearing between two coordinates
+    function calculateBearing(startLng, startLat, destLng, destLat) {
+        startLat = startLat * Math.PI / 180;
+        startLng = startLng * Math.PI / 180;
+        destLat = destLat * Math.PI / 180;
+        destLng = destLng * Math.PI / 180;
+    
+        const y = Math.sin(destLng - startLng) * Math.cos(destLat);
+        const x = Math.cos(startLat) * Math.sin(destLat) -
+              Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng);
+        const bearing = Math.atan2(y, x) * 180 / Math.PI;
         
-        // Control animation speed (lower = slower)
-        const animationSpeed = 0.5;
+        return (bearing + 360) % 360;
+    }
+    
+    // Function to animate plane along the flight path
+    function animatePlane(map) {
+        if (currentSegment >= flightRoute.length - 1) {
+            return; // End of route
+        }
+        
+        const start = flightRoute[currentSegment].coordinates;
+        const end = flightRoute[currentSegment + 1].coordinates;
+        const bearing = calculateBearing(start[0], start[1], end[0], end[1]);
+        
+        // Rotate plane marker according to bearing
+        const planeElement = document.querySelector('.plane-marker');
+        if (planeElement) {
+            planeElement.style.transform = `rotate(${bearing}deg)`;
+        }
+        
+        // Make the route visible now that animation is starting
+        if (currentSegment === 0) {
+            map.setLayoutProperty('route', 'visibility', 'visible');
+        }
+        
+        // Create a line from start to end
+        const lineDistance = turf.distance(
+            turf.point(start),
+            turf.point(end)
+        );
+        
+        const steps = Math.max(200, Math.ceil(lineDistance * 100)); // More steps for longer distances
+        
+        // Calculate duration based on distance (longer distance = more time)
+        const animationDuration = lineDistance * 2000; // 2 seconds per unit of distance
+        const animationStep = animationDuration / steps;
+        
+        // Create the animation frames
+        let step = 0;
+        
+        // Clear any existing animation
+        if (animation) {
+            cancelAnimationFrame(animation);
+        }
         
         function animate() {
-            // Check if we've reached the end of the route
-            if (counter >= arc.length - 1) {
-                return;
-            }
-            
-            // Get current coordinates
-            const currentCoords = arc[Math.floor(counter)];
-            if (!currentCoords || !Array.isArray(currentCoords) || currentCoords.length < 2) {
-                console.error('Invalid coordinates at position', counter, currentCoords);
-                counter += animationSpeed;
-                requestAnimationFrame(animate);
-                return;
-            }
-            
-            // Update point position
-            const pointData = {
-                'type': 'FeatureCollection',
-                'features': [{
-                    'type': 'Feature',
-                    'properties': {
-                        'bearing': 90
-                    },
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': currentCoords
-                    }
-                }]
-            };
-            
-            // Calculate bearing for plane orientation
-            // Safely get start and end coordinates for bearing calculation
-            const prevIndex = Math.max(0, Math.floor(counter) - 1);
-            const nextIndex = Math.min(arc.length - 1, Math.floor(counter) + 1);
-            
-            const start = arc[prevIndex];
-            const end = arc[nextIndex];
-            
-            if (start && end && Array.isArray(start) && Array.isArray(end) && 
-                start.length >= 2 && end.length >= 2) {
-                try {
-                    // Get a more accurate bearing that follows the curvature by using points along the path
-                    const bearing = turf.bearing(
-                        { type: 'Feature', geometry: { type: 'Point', coordinates: start } },
-                        { type: 'Feature', geometry: { type: 'Point', coordinates: end } }
-                    );
-                    
-                    // Smooth the bearing changes by using interpolation
-                    // Store the previous bearing if it exists
-                    if (typeof pointData.features[0].properties.prevBearing === 'undefined') {
-                        pointData.features[0].properties.prevBearing = bearing;
-                    }
-                    
-                    // Calculate interpolation factor (0 to 1) based on position between points
-                    const fraction = counter - Math.floor(counter);
-                    
-                    // Interpolate between previous bearing and current bearing
-                    let prevBearing = pointData.features[0].properties.prevBearing;
-                    let interpolatedBearing;
-                    
-                    // Handle bearing wrap-around (when crossing from 180 to -180 or vice versa)
-                    let diff = bearing - prevBearing;
-                    if (diff > 180) diff -= 360;
-                    if (diff < -180) diff += 360;
-                    
-                    interpolatedBearing = prevBearing + diff * fraction;
-                    
-                    // Store the current bearing for next frame
-                    pointData.features[0].properties.prevBearing = bearing;
-                    
-                    // Set bearing property
-                    pointData.features[0].properties.bearing = interpolatedBearing;
-                } catch (error) {
-                    console.error('Error calculating bearing:', error);
+            if (step >= steps) {
+                // We've reached the destination, show the marker
+                const destinationMarker = window.destinationMarkers[currentSegment + 1];
+                if (destinationMarker && !destinationMarker.added) {
+                    destinationMarker.marker.addTo(map);
+                    destinationMarker.element.style.opacity = '1';
+                    destinationMarker.added = true;
                 }
+                
+                // Move to next segment
+                currentSegment++;
+                
+                // If we reached the end, return
+                if (currentSegment >= flightRoute.length - 1) {
+                    return;
+                }
+                
+                // Otherwise, start next segment animation
+                animatePlane(map);
+                return;
             }
             
-            // Update the point source with new data
-            map.getSource('point').setData(pointData);
+            // Calculate the interpolated point
+            const fraction = step / steps;
+            const current = [
+                start[0] + (end[0] - start[0]) * fraction,
+                start[1] + (end[1] - start[1]) * fraction
+            ];
             
-            // Move map view to follow the plane
+            // Update plane position
+            flightMarker.setLngLat(current);
+            
+            // Move camera to follow plane
             map.easeTo({
-                center: currentCoords,
-                zoom: 4,
-                duration: 100 // Longer duration for smoother movement
+                center: current,
+                zoom: 4.5,
+                duration: 0
             });
             
-            // Check if we're approaching a destination and show the marker
-            for (let i = 1; i < flightRoute.length; i++) {
-                const destPoint = flightRoute[i].coordinates;
-                try {
-                    const distance = turf.distance(
-                        { type: 'Feature', geometry: { type: 'Point', coordinates: currentCoords } },
-                        { type: 'Feature', geometry: { type: 'Point', coordinates: destPoint } }
-                    );
-                    
-                    // When we get close to a destination (within 50km)
-                    if (distance < 0.5 && !window.destinationMarkers[i].added) {
-                        window.destinationMarkers[i].marker.addTo(map);
-                        window.destinationMarkers[i].element.style.opacity = '1';
-                        window.destinationMarkers[i].added = true;
-                    }
-                } catch (error) {
-                    console.error('Error calculating distance:', error);
-                }
-            }
-            
-            // Increment counter more slowly for a slower animation
-            counter = counter + animationSpeed;
-            setTimeout(() => {
-                requestAnimationFrame(animate);
-            }, 50); // Add delay between frames
+            step++;
+            animation = requestAnimationFrame(animate);
         }
         
         // Start the animation
         animate();
+    }
+    
+    // Function to start the flight animation
+    function startFlightAnimation(map) {
+        // Reset animation variables
+        currentSegment = 0;
+        animationStarted = true;
+        
+        // Reset markers - remove all but Madrid
+        if (window.destinationMarkers) {
+            window.destinationMarkers.forEach((marker, index) => {
+                if (index > 0) { // Skip Madrid
+                    marker.marker.remove();
+                    marker.added = false;
+                }
+            });
+        }
+        
+        // Reset plane position
+        if (flightMarker) {
+            flightMarker.setLngLat(flightRoute[0].coordinates);
+        }
+        
+        // First fly to Madrid with animation
+        map.flyTo({
+            center: flightRoute[0].coordinates,
+            zoom: 4,
+            duration: 2000,
+            complete: function() {
+                // Start the animation after flying to Madrid
+                setTimeout(() => {
+                    animatePlane(map);
+                }, 1000);
+            }
+        });
     }
     
     // Add chat functionality
@@ -822,28 +762,117 @@ document.addEventListener('DOMContentLoaded', () => {
         unit: 'metric'
     }));
 
-    // Wait for map to load before starting animation
+    // Create a style control button to toggle flight animation
+    const animationButton = document.createElement('button');
+    animationButton.className = 'maplibregl-ctrl-animate-flight maplibregl-ctrl-icon';
+    animationButton.style.width = '32px';
+    animationButton.style.height = '32px';
+    animationButton.style.background = '#fff';
+    animationButton.style.borderRadius = '4px';
+    animationButton.style.cursor = 'pointer';
+    animationButton.style.boxShadow = '0 0 0 2px rgba(0,0,0,0.1)';
+    animationButton.style.display = 'flex';
+    animationButton.style.alignItems = 'center';
+    animationButton.style.justifyContent = 'center';
+    animationButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.5L20.5 19L12 14.5V19L14 21V23L12 22L10 23V21L12 19V14.5L3.5 19L2 16.5L10.5 12L2 7.5L3.5 5L12 9.5V5L10 3V1L12 2L14 1V3L12 5V9.5L20.5 5L22 7.5L13.5 12L22 16.5Z"/>
+        </svg>
+    `;
+    animationButton.title = 'Animate Flight';
+    
+    // Create custom control
+    const animationControl = document.createElement('div');
+    animationControl.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    animationControl.appendChild(animationButton);
+    
+    // Add the custom control to the map
+    chatMap.getContainer().appendChild(animationControl);
+    
+    // Position the control
+    animationControl.style.position = 'absolute';
+    animationControl.style.top = '10px';
+    animationControl.style.right = '10px';
+    
+    // Add click event to animation button
+    animationButton.addEventListener('click', function() {
+        startFlightAnimation(chatMap);
+    });
+
+    // Wait for map to load before adding flight path
     chatMap.on('load', function() {
         console.log('Map loaded - initializing flight path');
+        createFlightPath(chatMap);
         
-        // Initially fly to a position that shows the entire route
-        chatMap.flyTo({
-            center: [20, 40],  // Centered between Europe and Asia
-            zoom: 3,
-            duration: 0
-        });
+        // Add initial message to chat
+        const initialMessage = `Planning your ${userSelections.budget} trip to Georgia${userSelections.starting !== 'Not in Georgia' ? ' from ' + userSelections.starting : ''} for ${userSelections.duration}`;
         
-        // Create the flight animation once the map is fully loaded
-        chatMap.once('idle', function() {
-            console.log('Map idle - creating flight animation');
-            const arc = createFlightAnimation(chatMap);
+        chatMessages.innerHTML = '';
+        
+        // Add AI welcome messages with proper Instagram-style formatting
+        setTimeout(() => {
+            addMessageToChat(initialMessage, 'ai');
             
-            // Wait a short moment for the user to see the initial view
             setTimeout(() => {
-                console.log('Starting flight animation');
-                animateRoute(chatMap, arc);
-            }, 1000);
-        });
+                showTypingIndicator();
+                
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    addMessageToChat("I've mapped out a route from Madrid to Georgia for you! Click the plane icon in the top-right corner to reset the flight animation. Your journey will take you from Madrid to Kutaisi, then to Tbilisi, and finally to Gudauri.", 'ai');
+                    
+                    // Add example user response after a delay
+                    setTimeout(() => {
+                        addMessageToChat("What natural attractions should I visit in Georgia?", 'user');
+                        
+                        // Show typing indicator and AI response
+                        setTimeout(() => {
+                            showTypingIndicator();
+                            
+                            setTimeout(() => {
+                                removeTypingIndicator();
+                                addMessageToChat("Georgia has incredible natural attractions! Martvili Canyon in the Samegrelo region is a must-visit with its stunning turquoise waters flowing through limestone cliffs. You can take a boat ride through the narrow gorge and see beautiful waterfalls. It's just 45km from Kutaisi, making it a perfect day trip. Other must-see natural wonders include the Prometheus Cave, Okatse Canyon, and Kazbegi's dramatic mountain landscapes. Would you like more specific information about any of these places?", 'ai');
+                                
+                                // Continue conversation about Martvili Canyon
+                                setTimeout(() => {
+                                    addMessageToChat("Tell me more about Martvili Canyon!", 'user');
+                                    
+                                    setTimeout(() => {
+                                        showTypingIndicator();
+                                        
+                                        setTimeout(() => {
+                                            removeTypingIndicator();
+                                            addMessageToChat("Martvili Canyon is one of Georgia's most beautiful destinations! Once a bathing spot for the noble Dadiani family, this 2.4km limestone gorge features emerald-green waters, moss-covered walls reaching 40m high, and seven cascading waterfalls. The 700m visitor trail includes two bridges and three viewing platforms. For around 20 GEL, you can take a 15-minute boat ride through the most picturesque section. Best visited in spring or fall to avoid crowds. Nearby, you can also visit Balda Canyon where swimming is permitted. Would you like me to include this in your itinerary?", 'ai');
+                                            
+                                            // Add final user response to complete the conversation
+                                            setTimeout(() => {
+                                                addMessageToChat("Yes, definitely add it to my itinerary!", 'user');
+                                                
+                                                setTimeout(() => {
+                                                    showTypingIndicator();
+                                                    
+                                                    setTimeout(() => {
+                                                        removeTypingIndicator();
+                                                        addMessageToChat("Great choice! I've added Martvili Canyon to your itinerary. Since you'll be arriving in Kutaisi first, I recommend visiting on your second day in Georgia. Plan for a half-day excursion (about 4-5 hours including travel time). The entrance fee is 20 GEL for foreigners plus 20 GEL for the boat ride. For the best experience, try to arrive early in the morning (it opens at 10am) to avoid crowds. Would you like me to suggest other attractions near Martvili to create a full day trip?", 'ai');
+                                                    }, 2000);
+                                                }, 1000);
+                                            }, 2500);
+                                        }, 2000);
+                                    }, 1000);
+                                }, 2500);
+                            }, 1000);
+                        }, 1500);
+                    }, 2000);
+                }, 1500);
+            }, 800);
+        }, 300);
+
+        // Trigger map resize to ensure proper rendering
+        setTimeout(() => {
+            chatMap.resize();
+            
+            // Animation is now started automatically when the map loads, so we don't need this
+            // startFlightAnimation(chatMap);
+        }, 500);
     });
 
     // Error handling
@@ -1119,7 +1148,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Add initial message to chat
-        const initialMessage = `Planning your ${userSelections.budget} trip to Georgia${userSelections.starting !== 'Not in Georgia' ? ' from ' + userSelections.starting : ''} for ${userSelections.duration}`;
+        const initialMessage = `
+            Planning your ${userSelections.budget} trip to Georgia${userSelections.starting !== 'Not in Georgia' ? ' from ' + userSelections.starting : ''} for ${userSelections.duration}
+        `;
         
         chatMessages.innerHTML = '';
         
@@ -1132,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     removeTypingIndicator();
-                    addMessageToChat("I've mapped out a route from Madrid to Georgia for you! Watch the animation showing your journey from Madrid to Kutaisi, then to Tbilisi, and finally to Gudauri.", 'ai');
+                    addMessageToChat("I've mapped out a route from Madrid to Georgia for you! Click the plane icon in the top-right corner to reset the flight animation. Your journey will take you from Madrid to Kutaisi, then to Tbilisi, and finally to Gudauri.", 'ai');
                     
                     // Add example user response after a delay
                     setTimeout(() => {
@@ -1184,30 +1215,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             chatMap.resize();
             
-            // Start the flight animation in the chat view too
-            setTimeout(() => {
-                startFlightAnimation(chatMap);
-            }, 1000);
+            // Animation is now started automatically when the map loads, so we don't need this
+            // startFlightAnimation(chatMap);
         }, 500);
     });
-
-    // Simple compatibility function to restart animation
-    function startFlightAnimation(map) {
-        // This is a simplified version that just reloads the page
-        // which will restart the animation automatically
-        console.log('Restarting flight animation');
-        
-        // Reset the map view first
-        map.flyTo({
-            center: [20, 40],  // Centered between Europe and Asia
-            zoom: 3,
-            duration: 1000,
-            complete: function() {
-                // Re-create the animation once the map is repositioned
-                map.once('idle', function() {
-                    const arc = createFlightAnimation(map);
-                });
-            }
-        });
-    }
 });

@@ -50,6 +50,9 @@
     <!-- MapLibre GL JS JavaScript -->
     <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
     
+    <!-- Turf.js for geospatial analysis -->
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
@@ -228,7 +231,7 @@
                 <div class="space-y-2">
                   <label class="block text-md font-semibold text-gray-700">Starting From</label>
                   <div class="grid grid-cols-2 gap-1">
-                    <button type="button" class="option-btn p-2 text-sm border border-gray-200 rounded-lg text-center hover:bg-blue-50 hover:border-blue-500" data-field="starting-point" data-value="Tbilisi">Tbilisi</button>
+                    <button type="button" class="option-btn p-2 text-sm border border-gray-200 rounded-lg text-center hover:bg-blue-50 hover:border-blue-500" data-field="starting-point" data-value="Tbilisi">Gudauri</button>
                     <button type="button" class="option-btn p-2 text-sm border border-gray-200 rounded-lg text-center hover:bg-blue-50 hover:border-blue-500" data-field="starting-point" data-value="Other">Other</button>
                   </div>
                   <input type="hidden" id="starting-point-input">
