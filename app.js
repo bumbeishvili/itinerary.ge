@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Remove active class from all buttons in the same group
             document.querySelectorAll(`.option-btn[data-field="${field}"]`).forEach(btn => {
-                btn.classList.remove('bg-blue-50', 'border-blue-500', 'font-medium');
+                btn.classList.remove('active', 'bg-blue-50', 'border-blue-500', 'font-medium');
             });
             
             // Add active class to clicked button
-            this.classList.add('bg-blue-50', 'border-blue-500', 'font-medium');
+            this.classList.add('active', 'bg-blue-50', 'border-blue-500', 'font-medium');
             
             // Update hidden input
             document.getElementById(`${field}-input`).value = value;
@@ -43,12 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const value = this.getAttribute('data-value');
             
             // Toggle active class
+            this.classList.toggle('active');
             this.classList.toggle('bg-blue-50');
             this.classList.toggle('border-blue-500');
             this.classList.toggle('font-medium');
             
             // Update preferences array
-            if (this.classList.contains('bg-blue-50')) {
+            if (this.classList.contains('active')) {
                 if (!selectedPreferences.includes(value)) {
                     selectedPreferences.push(value);
                 }
@@ -129,8 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function createTaskElement(taskText) {
         return `
             <div class="flex items-center gap-4">
-                <div class="w-6 h-6 border-2 border-gray-300 rounded-md cursor-pointer relative flex items-center justify-center" onclick="toggleCheck(this)"></div>
-                <span>${taskText}</span>
+                <div class="checkbox w-6 h-6 border-2 rounded-md cursor-pointer relative flex items-center justify-center" onclick="toggleCheck(this)"></div>
+                <span class="text-gray-700">${taskText}</span>
             </div>
         `;
     }
@@ -255,7 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle section visibility
     window.toggleSection = function(sectionId) {
         const section = document.getElementById(sectionId);
-        const arrow = section.parentElement.querySelector('svg.transform');
+        const sectionHeader = section.closest('.checklist-section').querySelector('.section-header');
+        const arrow = sectionHeader.querySelector('svg.transform');
         
         if (section.classList.contains('hidden')) {
             section.classList.remove('hidden');
@@ -270,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.toggleCheck = function(checkbox) {
         event.stopPropagation(); // Prevent section toggle
         
-        const isSection = checkbox.closest('.flex.items-center.justify-between') !== null;
+        const isSection = checkbox.closest('.section-header') !== null;
         const checkmark = checkbox.querySelector('svg');
         const textElement = checkbox.nextElementSibling;
         
@@ -278,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // If checkbox is checked, uncheck it
             checkbox.removeChild(checkmark);
             if (textElement) textElement.classList.remove('line-through', 'text-gray-500');
-            checkbox.classList.remove('bg-green-500', 'border-green-500');
+            checkbox.classList.remove('checked', 'bg-accent', 'border-accent');
         } else {
             // If checkbox is unchecked, check it
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -292,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(path);
             checkbox.appendChild(svg);
             if (textElement) textElement.classList.add('line-through', 'text-gray-500');
-            checkbox.classList.add('bg-green-500', 'border-green-500');
+            checkbox.classList.add('checked', 'bg-accent', 'border-accent');
         }
         
         if (isSection) {
@@ -300,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = checkbox.closest('.checklist-section');
             const detailsId = section.querySelector('[id$="-details"]').id;
             const tasksContainer = document.getElementById(detailsId).querySelector('.space-y-4');
-            const taskCheckboxes = tasksContainer.querySelectorAll('.w-6.h-6');
+            const taskCheckboxes = tasksContainer.querySelectorAll('.checkbox');
             
             let recursiveUpdate = false;
             
@@ -319,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         taskTextElement.classList.remove('line-through', 'text-gray-500');
                     }
                     
-                    taskCheckbox.classList.remove('bg-green-500', 'border-green-500');
+                    taskCheckbox.classList.remove('checked', 'bg-accent', 'border-accent');
                 } else if (!checkmark && !taskChecked) {
                     // Check all tasks
                     recursiveUpdate = true;
@@ -340,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         taskTextElement.classList.add('line-through', 'text-gray-500');
                     }
                     
-                    taskCheckbox.classList.add('bg-green-500', 'border-green-500');
+                    taskCheckbox.classList.add('checked', 'bg-accent', 'border-accent');
                 }
             });
             
@@ -372,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tasksContainer = document.getElementById(`${sectionId}-tasks`);
             if (!tasksContainer) return;
             
-            const taskCheckboxes = tasksContainer.querySelectorAll('.w-6.h-6');
+            const taskCheckboxes = tasksContainer.querySelectorAll('.checkbox');
             if (taskCheckboxes.length === 0) return;
             
             // Count completed tasks for this section
@@ -408,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasksContainer = document.getElementById(`${sectionId}-tasks`);
         if (!tasksContainer) return;
         
-        const taskCheckboxes = tasksContainer.querySelectorAll('.w-6.h-6');
+        const taskCheckboxes = tasksContainer.querySelectorAll('.checkbox');
         if (taskCheckboxes.length === 0) return;
         
         let completedTasks = 0;
@@ -425,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.style.width = `${progress}%`;
             
             // Update section checkbox
-            const sectionCheckbox = section.querySelector('.flex.items-center.gap-4 > .w-6.h-6');
+            const sectionCheckbox = section.querySelector('.flex.items-center.gap-4 > .checkbox');
             const sectionTitle = sectionCheckbox ? sectionCheckbox.nextElementSibling : null;
             
             if (progress === 100) {
@@ -441,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     svg.appendChild(path);
                     sectionCheckbox.appendChild(svg);
-                    sectionCheckbox.classList.add('bg-green-500', 'border-green-500');
+                    sectionCheckbox.classList.add('checked', 'bg-accent', 'border-accent');
                     
                     if (sectionTitle) {
                         sectionTitle.classList.add('line-through', 'text-gray-500');
@@ -451,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const checkmark = sectionCheckbox.querySelector('svg');
                 if (checkmark) {
                     sectionCheckbox.removeChild(checkmark);
-                    sectionCheckbox.classList.remove('bg-green-500', 'border-green-500');
+                    sectionCheckbox.classList.remove('checked', 'bg-accent', 'border-accent');
                     
                     if (sectionTitle) {
                         sectionTitle.classList.remove('line-through', 'text-gray-500');
